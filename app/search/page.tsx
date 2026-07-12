@@ -234,8 +234,20 @@ export default function SearchPage() {
   const [hasSearched, setHasSearched] = useState(false);
   const [expanded, setExpanded] = useState<number | null>(null);
 
-  const updateSegment = (id: number, field: keyof Segment, value: string) =>
-    setSegments(s => s.map(x => x.id === id ? { ...x, [field]: value } : x));
+  const updateSegment = (id: number, field: keyof Segment, value: string) => {
+    setSegments(s => {
+      const updated = s.map(x => x.id === id ? { ...x, [field]: value } : x);
+      // En modo ida y vuelta, el segundo segmento se sincroniza automáticamente
+      if (mode === "roundtrip" && updated.length === 2) {
+        const first = updated[0];
+        return [
+          first,
+          { ...updated[1], origin: first.destination, destination: first.origin },
+        ];
+      }
+      return updated;
+    });
+  };
 
   const addSegment = () => {
     if (segments.length < 5) setSegments(s => [...s, { id: Date.now(), origin:"", destination:"", date:"" }]);
@@ -267,7 +279,19 @@ export default function SearchPage() {
           {/* MODE */}
           <div style={{ display:"flex", gap:4, background:"#F3F4F6", borderRadius:8, padding:4, width:"fit-content", marginBottom:20 }}>
             {(["oneway","roundtrip","multicity"] as SearchMode[]).map(m => (
-              <button key={m} onClick={() => { setMode(m); if(m==="oneway") setSegments([{id:1,origin:"",destination:"",date:""}]); if(m==="roundtrip") setSegments([{id:1,origin:"",destination:"",date:""},{id:2,origin:"",destination:"",date:""}]); }}
+              <button key={m} onClick={() => {
+                setMode(m);
+                setSegments(prev => {
+                  const first = prev[0];
+                  if (m === "oneway") return [{ ...first, id:1 }];
+                  if (m === "roundtrip") return [
+                    first,
+                    { id:2, origin: first.destination, destination: first.origin, date:"" },
+                  ];
+                  // multicity
+                  return [first, { id:2, origin:"", destination:"", date:"" }];
+                });
+              }}
                 style={{ padding:"6px 14px", borderRadius:6, border:"none", fontWeight:500, fontSize:"0.875rem", cursor:"pointer", background: mode===m ? "#ffffff" : "transparent", color: mode===m ? "#111827" : "#6B7280", boxShadow: mode===m ? "0 1px 3px rgba(0,0,0,0.1)" : "none", transition:"all 0.15s" }}>
                 {m==="oneway"?"Solo ida":m==="roundtrip"?"Ida y vuelta":"Multi-ciudad"}
               </button>
@@ -290,8 +314,22 @@ export default function SearchPage() {
             {segments.map((seg, idx) => (
               <div key={seg.id} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 180px auto", gap:10, alignItems:"center" }}>
                 {mode==="multicity" && <span style={{ fontSize:"0.75rem", color:"#9CA3AF", gridColumn:"1/-1", marginBottom:-4 }}>Segmento {idx+1}</span>}
-                <AirportInput value={seg.origin} onChange={c => updateSegment(seg.id,"origin",c)} placeholder="Origen — Madrid, París..." />
-                <AirportInput value={seg.destination} onChange={c => updateSegment(seg.id,"destination",c)} placeholder="Destino — Tokio, Dubai..." />
+                {mode==="roundtrip" && idx===1 ? (
+                  // En vuelta, mostramos origen/destino como texto no editable
+                  <>
+                    <div style={{ padding:"11px 14px", background:"#F9FAFB", border:"1px solid #E5E7EB", borderRadius:8, fontSize:"0.875rem", color:"#6B7280" }}>
+                      ↩ Vuelta: {seg.origin || "—"}
+                    </div>
+                    <div style={{ padding:"11px 14px", background:"#F9FAFB", border:"1px solid #E5E7EB", borderRadius:8, fontSize:"0.875rem", color:"#6B7280" }}>
+                      → {seg.destination || "—"}
+                    </div>
+                  </>
+                ) : (
+                  <>
+                    <AirportInput value={seg.origin} onChange={c => updateSegment(seg.id,"origin",c)} placeholder="Origen — Madrid, París..." />
+                    <AirportInput value={seg.destination} onChange={c => updateSegment(seg.id,"destination",c)} placeholder="Destino — Tokio, Dubai..." />
+                  </>
+                )}
                 <input type="date" value={seg.date} onChange={e => updateSegment(seg.id,"date",e.target.value)}
                   min={new Date().toISOString().split("T")[0]}
                   max={new Date(Date.now()+365*864e5).toISOString().split("T")[0]}
@@ -336,10 +374,50 @@ export default function SearchPage() {
             <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:16 }}>
               <h2 style={{ fontSize:"1rem", fontWeight:600 }}>
                 {results.length > 0 ? `${results.length} opciones` : "Sin resultados"}{" "}
-                <span style={{ fontWeight:400, color:"#6B7280" }}>para {segments[0]?.origin} → {segments[0]?.destination}</span>
+                <span style={{ fontWeight:400, color:"#6B7280" }}>
+                  {mode==="roundtrip"
+                    ? `${segments[0]?.origin} ⇄ ${segments[1]?.destination}`
+                    : `para ${segments[0]?.origin} → ${segments[0]?.destination}`}
+                </span>
               </h2>
               <span style={{ fontSize:"0.8125rem", color:"#6B7280" }}>{cabin==="first"?"✦ First Class":cabin==="business"?"Business":"Economy"}</span>
             </div>
+
+            {/* ROUNDTRIP TOTALS */}
+            {mode==="roundtrip" && results.length > 0 && (() => {
+              // Agrupa por programa y suma puntos ida+vuelta
+              const byProgram: Record<string, { name: string; points: number; buyCost: number; cash: number; count: number }> = {};
+              results.forEach(r => {
+                if (!byProgram[r.programId]) {
+                  byProgram[r.programId] = { name: r.programName, points: 0, buyCost: 0, cash: 0, count: 0 };
+                }
+                byProgram[r.programId].points += r.pointsNeeded;
+                byProgram[r.programId].buyCost += r.buyCost;
+                byProgram[r.programId].cash += r.cashEquivalent;
+                byProgram[r.programId].count += 1;
+              });
+              const totals = Object.values(byProgram).filter(p => p.count >= 2);
+              if (!totals.length) return null;
+              return (
+                <div style={{ background:"#EFF6FF", border:"1px solid #BFDBFE", borderRadius:10, padding:"14px 18px", marginBottom:20 }}>
+                  <p style={{ fontSize:"0.75rem", fontWeight:600, color:"#1D4ED8", marginBottom:10, textTransform:"uppercase", letterSpacing:"0.05em" }}>
+                    Total ida + vuelta por programa
+                  </p>
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    {totals.sort((a,b) => a.buyCost - b.buyCost).map(p => (
+                      <div key={p.name} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:8 }}>
+                        <span style={{ fontWeight:600, fontSize:"0.9rem", color:"#1E3A8A" }}>{p.name}</span>
+                        <div style={{ display:"flex", gap:16, alignItems:"center" }}>
+                          <span style={{ fontSize:"0.875rem", color:"#374151" }}><strong>{p.points.toLocaleString("es-ES")}</strong> pts totales</span>
+                          {p.buyCost > 0 && <span style={{ fontSize:"0.875rem", color:"#1D4ED8", fontWeight:700 }}>~€{p.buyCost.toLocaleString("es-ES")} comprando puntos</span>}
+                          <span style={{ fontSize:"0.8125rem", color:"#9CA3AF", textDecoration:"line-through" }}>€{p.cash.toLocaleString("es-ES")}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })()}
 
             {results.length === 0 && (
               <div className="card" style={{ padding:40, textAlign:"center" }}>
