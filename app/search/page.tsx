@@ -310,33 +310,38 @@ export default function SearchPage() {
           </div>
 
           {/* SEGMENTS */}
-          <div style={{ display:"flex", flexDirection:"column", gap:10, marginBottom:16 }}>
+          <div style={{ display:"flex", flexDirection:"column", gap:12, marginBottom:16 }}>
             {segments.map((seg, idx) => (
-              <div key={seg.id} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 180px auto", gap:10, alignItems:"center" }}>
-                {mode==="multicity" && <span style={{ fontSize:"0.75rem", color:"#9CA3AF", gridColumn:"1/-1", marginBottom:-4 }}>Segmento {idx+1}</span>}
-                {mode==="roundtrip" && idx===1 ? (
-                  // En vuelta, mostramos origen/destino como texto no editable
-                  <>
-                    <div style={{ padding:"11px 14px", background:"#F9FAFB", border:"1px solid #E5E7EB", borderRadius:8, fontSize:"0.875rem", color:"#6B7280" }}>
-                      ↩ Vuelta: {seg.origin || "—"}
-                    </div>
-                    <div style={{ padding:"11px 14px", background:"#F9FAFB", border:"1px solid #E5E7EB", borderRadius:8, fontSize:"0.875rem", color:"#6B7280" }}>
-                      → {seg.destination || "—"}
-                    </div>
-                  </>
-                ) : (
-                  <>
-                    <AirportInput value={seg.origin} onChange={c => updateSegment(seg.id,"origin",c)} placeholder="Origen — Madrid, París..." />
-                    <AirportInput value={seg.destination} onChange={c => updateSegment(seg.id,"destination",c)} placeholder="Destino — Tokio, Dubai..." />
-                  </>
-                )}
-                <input type="date" value={seg.date} onChange={e => updateSegment(seg.id,"date",e.target.value)}
-                  min={new Date().toISOString().split("T")[0]}
-                  max={new Date(Date.now()+365*864e5).toISOString().split("T")[0]}
-                  className="input" style={{ padding:"11px 12px" }} />
-                {mode==="multicity" && segments.length>1
-                  ? <button onClick={() => removeSegment(seg.id)} style={{ background:"none", border:"none", color:"#9CA3AF", cursor:"pointer", padding:4 }}><Trash2 style={{width:16,height:16}} /></button>
-                  : <div />}
+              <div key={seg.id}>
+                {mode==="multicity" && <span style={{ fontSize:"0.75rem", color:"#9CA3AF", display:"block", marginBottom:4 }}>Segmento {idx+1}</span>}
+                {/* Fila 1: origen + destino */}
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:8, marginBottom:8 }}>
+                  {mode==="roundtrip" && idx===1 ? (
+                    <>
+                      <div style={{ padding:"11px 14px", background:"#F9FAFB", border:"1px solid #E5E7EB", borderRadius:8, fontSize:"0.875rem", color:"#6B7280" }}>
+                        ↩ {seg.origin || "—"}
+                      </div>
+                      <div style={{ padding:"11px 14px", background:"#F9FAFB", border:"1px solid #E5E7EB", borderRadius:8, fontSize:"0.875rem", color:"#6B7280" }}>
+                        → {seg.destination || "—"}
+                      </div>
+                    </>
+                  ) : (
+                    <>
+                      <AirportInput value={seg.origin} onChange={c => updateSegment(seg.id,"origin",c)} placeholder="Origen" />
+                      <AirportInput value={seg.destination} onChange={c => updateSegment(seg.id,"destination",c)} placeholder="Destino" />
+                    </>
+                  )}
+                </div>
+                {/* Fila 2: fecha + botón eliminar */}
+                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+                  <input type="date" value={seg.date} onChange={e => updateSegment(seg.id,"date",e.target.value)}
+                    min={new Date().toISOString().split("T")[0]}
+                    max={new Date(Date.now()+365*864e5).toISOString().split("T")[0]}
+                    className="input" style={{ padding:"11px 12px", flex:1 }} />
+                  {mode==="multicity" && segments.length>1
+                    ? <button onClick={() => removeSegment(seg.id)} style={{ background:"none", border:"none", color:"#9CA3AF", cursor:"pointer", padding:4 }}><Trash2 style={{width:16,height:16}} /></button>
+                    : null}
+                </div>
               </div>
             ))}
           </div>
