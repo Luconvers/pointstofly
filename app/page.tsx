@@ -3,6 +3,7 @@
 import Link from "next/link";
 import { useState } from "react";
 import { Plane, Search, Bell, Calculator, ArrowRight, Check, X, ChevronRight } from "lucide-react";
+import { DATA_LAST_UPDATED } from "@/lib/programs-data";
 
 const REAL_BOOKINGS = [
   { route: "Madrid → Nueva York", cabin: "Business", program: "Iberia Avios", airline: "Iberia", points: "34.000", cash: "€3.200", paid: "€408", savings: "87%" },
@@ -161,6 +162,9 @@ export default function HomePage() {
               </tbody>
             </table>
           </div>
+          <p style={{ fontSize:"0.75rem", color:"#9CA3AF", marginTop:12 }}>
+            Tarifas actualizadas en {DATA_LAST_UPDATED} · Fuente: tablas oficiales de cada programa de fidelidad
+          </p>
         </div>
       </section>
 

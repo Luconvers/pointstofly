@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Link from "next/link";
 import { Plane, Search, Plus, Trash2, ChevronDown, ArrowRight, AlertCircle, Loader, Shield, Clock, Hotel, ExternalLink } from "lucide-react";
-import { PROGRAMS } from "@/lib/programs-data";
+import { PROGRAMS, DATA_LAST_UPDATED, DATA_SOURCES } from "@/lib/programs-data";
 import AirportInput from "@/components/AirportInput";
 
 type Cabin = "business" | "first" | "economy";
@@ -558,7 +558,7 @@ export default function SearchPage() {
             <div style={{ display:"flex", alignItems:"flex-start", gap:8, marginTop:16, padding:14, background:"#FFFBEB", border:"1px solid #FDE68A", borderRadius:8 }}>
               <AlertCircle style={{ width:14, height:14, color:"#D97706", flexShrink:0, marginTop:2 }} />
               <p style={{ fontSize:"0.8125rem", color:"#92400E" }}>
-                Resultados orientativos basados en tarifas históricas. La disponibilidad real varía a diario. Activa una alerta para ser notificado cuando aparezcan asientos en tu ruta.
+                Tarifas actualizadas en <strong>{DATA_LAST_UPDATED}</strong>. Fuente: {DATA_SOURCES} Los puntos necesarios pueden variar si las aerolíneas actualizan sus tablas. Activa una alerta para ser notificado cuando aparezcan asientos reales en tu ruta.
               </p>
             </div>
           </div>

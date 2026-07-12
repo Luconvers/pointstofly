@@ -1,3 +1,6 @@
+export const DATA_LAST_UPDATED = "Julio 2026";
+export const DATA_SOURCES = "Tablas oficiales de Iberia Plus, British Airways Executive Club, Flying Blue, Aeroplan, Asia Miles, Virgin Flying Club y ANA Mileage Club.";
+
 export type Cabin = "economy" | "business" | "first";
 export type Alliance = "oneworld" | "star_alliance" | "skyteam" | "independent";
 
